@@ -12,12 +12,8 @@ class App extends React.Component {
         status: '',
         device_sound_name: '',
         sounds_by_name: {},
-        ws: this.setupWebSocket(new WebSocket(WS_DOMAIN)),
+        ws: this.setupWebSocket(new WebSocket(WS_DOMAIN))
     }
-  }
-
-  componentDidMount() {
-    this.loadSounds();
   }
 
   setupWebSocket(ws) {
@@ -30,11 +26,35 @@ class App extends React.Component {
   onOpen() {
     // on connecting, do nothing but log it to the console
     console.log('connected')
+
+    this.setState({status: 'Loading sounds...'});
+
+    axios.get('/game-data').then(response=>{
+      let sound_names = response.data['sound_names'];
+      let sounds_by_name = {};
+
+      sound_names.forEach((name) => {
+        sounds_by_name[name] = new Audio(['/static/app/sounds/' + name]);
+      })
+
+      this.setState({
+        status: 'Done loading sounds',
+        device_sound_name: response.data['device_sound_name'],
+        sounds_by_name: sounds_by_name,
+      });
+
+    }).catch(error=>{
+      console.log(error);
+      this.setState({
+        status: 'Error loading sounds'
+      });
+    });
   }
 
   onMessage(e) {
     // on receiving a message, add it to the list of messages
-    const message = JSON.parse(e.data)
+    const message = JSON.parse(e.data);
+    this.playSound(message.sound_name);
   }
 
   onClose() {
@@ -45,38 +65,8 @@ class App extends React.Component {
     });
   }
 
-  loadSounds() {
-    this.setState({status: 'Loading sounds...'});
-
-    axios('/game-data').then(response=>{
-      let sound_names = response.data['sound_names'];
-      let sounds_by_name = {};
-
-      sound_names.forEach((name) => {
-        sounds_by_name[name] = this.loadSound(name);
-      })
-
-      let device_sound_name = sound_names[Math.floor(Math.random() * sound_names.length)]; 
-
-      this.setState({
-        sounds_by_name: sounds_by_name,
-        device_sound_name: device_sound_name,
-        status: 'Done loading sounds'
-      });
-
-    }).catch(error=>{
-      this.setState({
-        status: 'Error loading sounds'
-      });
-    });
-  }
-
-  loadSound(sound_name){
-    return new Audio(['/static/app/sounds/' + sound_name]);
-  }
-
   onClick(e){
-    let button = e.target;
+    const button = e.target;
     button.disabled = true;
 
     let sound = this.state.sounds_by_name[this.state.device_sound_name];
@@ -84,10 +74,11 @@ class App extends React.Component {
       button.disabled = false;
     });
 
-    sound.play();
+    this.state.ws.send(JSON.stringify({sound_name: this.state.device_sound_name}));
   }
 
-  playSound() {
+  playSound(sound_name) {
+    this.state.sounds_by_name[sound_name].play();
   }
 
   render() {

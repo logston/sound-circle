@@ -5,7 +5,7 @@ from app.views import GameDataView
 
 
 urlpatterns = [
-    path('', PlayTemplateView.as_view(), name="play"),
-    path('game-data', GameDataView.as_view(), name="game_data"),
+    path('', PlayTemplateView.as_view(), name='play'),
+    path('game-data', GameDataView.as_view(), name='game_data'),
 ]
 
