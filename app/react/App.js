@@ -9,24 +9,14 @@ class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-        status: '',
+        status: 'Loading...',
         device_sound_name: '',
         sounds_by_name: {},
-        ws: this.setupWebSocket(new WebSocket(WS_DOMAIN))
+        ws: null,
     }
   }
 
-  setupWebSocket(ws) {
-   ws.onopen = this.onOpen.bind(this);
-   ws.onmessage = this.onMessage.bind(this);
-   ws.onclose = this.onClose.bind(this);
-   return ws
-  }
-
-  onOpen() {
-    // on connecting, do nothing but log it to the console
-    console.log('connected')
-
+  componentDidMount() {
     this.setState({status: 'Loading sounds...'});
 
     axios.get('/game-data').then(response=>{
@@ -39,7 +29,6 @@ class App extends React.Component {
 
       this.setState({
         status: 'Done loading sounds',
-        device_sound_name: response.data['device_sound_name'],
         sounds_by_name: sounds_by_name,
       });
 
@@ -49,12 +38,34 @@ class App extends React.Component {
         status: 'Error loading sounds'
       });
     });
+
+    this.setState({
+      ws: this.setupWebSocket(new WebSocket(WS_DOMAIN))
+    });
+  }
+
+  setupWebSocket(ws) {
+    ws.onopen = this.onOpen.bind(this);
+    ws.onmessage = this.onMessage.bind(this);
+    ws.onclose = this.onClose.bind(this);
+    return ws
+  }
+
+  onOpen(e) {
+    // on connecting, do nothing but log it to the console
+    console.log('connected')
   }
 
   onMessage(e) {
     // on receiving a message, add it to the list of messages
     const message = JSON.parse(e.data);
-    this.playSound(message.sound_name);
+    if (message.just_connected) {
+      this.setState({
+        device_sound_name: message.device_sound_name,
+      })
+    } else {
+      this.playSound(message.sound_name);
+    }
   }
 
   onClose() {

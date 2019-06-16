@@ -1,23 +1,34 @@
 import json
+import random
 
-from channels.consumer import AsyncConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
+
+from . import utils
 
 
-class SoundPlayerConsumer(AsyncConsumer):
+class SoundPlayerConsumer(AsyncJsonWebsocketConsumer):
 
-    async def websocket_connect(self, event):
-        await self.send({
-            'type': 'websocket.accept',
-        })
+    async def connect(self):
+        await self.accept()
 
-    async def websocket_receive(self, event):
-        message = json.loads(event['text'])
+        sound_names = utils.get_sound_names()
+
+        device_sound_name = random.choice(sound_names)
+
+        data = {
+            'just_connected': True,
+            'device_sound_name': device_sound_name,
+        }
+
+        await self.send_json(data)
+
+    async def receive_json(self, message):
         sound_name = message['sound_name']
-        await self.send({
-            'type': 'websocket.send',
-            'text': json.dumps({'sound_name': sound_name}),
-        })
+        content = {
+          'sound_name': sound_name,
+        }
+        await self.send_json(content)
 
-    async def websocket_disconnect(self, event):
+    async def disconnect(self):
         pass
 

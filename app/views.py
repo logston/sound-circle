@@ -15,10 +15,7 @@ class GameDataView(View):
     def get(self, request, *args, **kwargs):
         sound_names = utils.get_sound_names()
 
-        device_sound_name = random.choice(sound_names)
-
         data = {
-            'device_sound_name': device_sound_name,
             'sound_names': sound_names,
         }
         return JsonResponse(data)
