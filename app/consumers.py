@@ -14,3 +14,6 @@ class SoundPlayerConsumer(AsyncConsumer):
             "text": event["text"],
         })
 
+    async def websocket_disconnect(self, event):
+        pass
+

@@ -3,14 +3,12 @@ from django.conf.urls import url
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 
-from app.consumers import SoundPlayerConsumer
+import app.routing
 
 
 application = ProtocolTypeRouter({
     "websocket": AuthMiddlewareStack(
-        URLRouter([
-            url(r"^play/$", SoundPlayerConsumer),
-        ])
+        URLRouter(app.routing.websocket_urlpatterns)
     ),
 })
 
