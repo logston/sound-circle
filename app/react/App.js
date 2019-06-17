@@ -9,7 +9,9 @@ class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-        status: 'Loading...',
+        status: null,
+        status_str: 'Loading...',
+        formatted_sound_string: '',
         device_sound_name: '',
         sounds_by_name: {},
         ws: null,
@@ -17,7 +19,10 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    this.setState({status: 'Loading sounds...'});
+    this.setState({
+      status: 'downloading',
+      status_string: 'Loading sounds...'
+    });
 
     axios.get('/game-data').then(response=>{
       let sound_names = response.data['sound_names'];
@@ -28,14 +33,16 @@ class App extends React.Component {
       })
 
       this.setState({
-        status: 'Done loading sounds',
+        status: null,
+        status_string: 'Done loading sounds',
         sounds_by_name: sounds_by_name,
       });
 
     }).catch(error=>{
       console.log(error);
       this.setState({
-        status: 'Error loading sounds'
+        status: null,
+        status_string: 'Error loading sounds'
       });
     });
 
@@ -61,6 +68,7 @@ class App extends React.Component {
     const message = JSON.parse(e.data);
     if (message.just_connected) {
       this.setState({
+        formatted_sound_string: message.formatted_sound_string,
         device_sound_name: message.device_sound_name,
       })
     } else {
@@ -77,27 +85,29 @@ class App extends React.Component {
   }
 
   onClick(e){
-    const button = e.target;
-    button.disabled = true;
-
-    let sound = this.state.sounds_by_name[this.state.device_sound_name];
-    sound.addEventListener('ended', function(){
-      button.disabled = false;
-    });
+    e.target.disabled = true;
 
     this.state.ws.send(JSON.stringify({sound_name: this.state.device_sound_name}));
   }
 
   playSound(sound_name) {
-    this.state.sounds_by_name[sound_name].play();
+    let sound = this.state.sounds_by_name[sound_name];
+    sound.addEventListener('ended', this.enableButton);
+    sound.play().catch(this.enableButton);
+  }
+
+  enableButton() {
+    document.getElementById('makeSound').disabled = false;
   }
 
   render() {
     return (
       <div>
-        <div>{this.state.status}</div>
-        <div>Your sound: {this.state.device_sound_name}</div>
-        <button type="button" onClick={(e) => this.onClick(e)}>Make Sound</button>
+        {this.state.status !== null &&
+          <div>{this.state.status_string}</div>
+        }
+        <div>{this.state.formatted_sound_string}</div>
+        <button id="makeSound" type="button" onClick={(e) => this.onClick(e)}>Make Sound</button>
       </div>
     );
   }
